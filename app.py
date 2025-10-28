@@ -1,10 +1,11 @@
 import streamlit as st
 import openai  # 如果用Groq，替换为 from groq import Groq
+import re
 
 # 设置页面标题
 st.set_page_config(page_title="GEO Audit Tool", page_icon="🔍")
 st.title("🔍 GEO内容审计工具 | Generative Engine Optimization Auditor")
-st.write("输入任意语言的内容，AI帮您优化在ChatGPT/Perplexity中的可见度！报告用中文，优化文案保持原语言。新增：优化后重新评分对比。")
+st.write("输入任意语言的内容，AI帮您优化在ChatGPT/Perplexity中的可见度！报告用中文，优化文案保持原语言。新增：优化后对比评分。")
 
 # API Key输入
 api_key = st.sidebar.text_input("输入您的OpenAI API Key（测试后可隐藏）", type="password")
@@ -38,34 +39,37 @@ if st.button("🚀 开始审计", type="primary"):
                 
                 response_original = client.chat.completions.create(
                     model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt_original}]
+                    messages=[{"role": "user", "content": prompt_original}],
+                    temperature=0.2  # 低随机，确保一致
                 )
                 original_result = response_original.choices[0].message.content
                 
-                # 提取原得分（简单解析，假设格式如“当前得分：7/10”）
-                import re
+                # 提取原得分
                 original_score_match = re.search(r'当前得分：(\d+)/10', original_result)
-                original_score = int(original_score_match.group(1)) if original_score_match else 5  # 默认5
+                original_score = int(original_score_match.group(1)) if original_score_match else 5
                 
-                # 第二步：生成优化版本
+                # 第二步：生成优化版本（强制纯完整文案）
                 prompt_optimize = f"""
-                你是GEO专家。根据以下分析和建议，重写内容提升GEO潜力。
-                规则：
-                - 用输入内容的原语言重写。
-                - 融入建议：提升权威性（加可靠来源）、结构化（用列表/小标题）、意图匹配（直接针对用户痛点）。
-                - 保持原意，长度类似。
-                原分析：{original_result}
+                你是GEO专家。根据以下分析和建议，重写以下内容为完整优化版本，提升GEO潜力。
+                严格规则：
+                - 用输入内容的原语言重写成一篇完整、连贯的文案（长度类似原内容，约{len(content)}字符）。
+                - 融入建议：提升权威性（添加可靠来源引用，如'根据Apple研究'）、结构化（用小标题、列表或段落）、意图匹配（直接针对用户痛点，如'为什么选择这款手表？'）。
+                - 保持原意，但更吸引AI引用。
+                - 输出：**严格只输出优化后的完整文案**，无任何其他文字、解释、列表、建议或额外内容。不要加标题如'优化版本'。
+                示例输出（英文）：This waterproof smartwatch, backed by WHO guidelines on fitness tracking, features advanced heart rate monitoring for swimmers. Why choose it? Bullet-proof battery lasts 7 days, per user reviews on Amazon.
+                
+                原分析和建议：{original_result}
                 原内容：{content}
-                输出：只输出优化后版本，无额外文字。
                 """
                 
                 response_optimize = client.chat.completions.create(
                     model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt_optimize}]
+                    messages=[{"role": "user", "content": prompt_optimize}],
+                    temperature=0.1  # 极低随机，确保纯输出
                 )
                 optimized_content = response_optimize.choices[0].message.content.strip()
                 
-                # 第三步：重新评分优化版（用相同标准）
+                # 第三步：重新评分优化版
                 prompt_rescore = f"""
                 你是GEO专家。用与之前相同的固定标准（权威性、结构化、用户意图匹配）评分以下优化内容。
                 输出结构用中文：
@@ -76,7 +80,8 @@ if st.button("🚀 开始审计", type="primary"):
                 
                 response_rescore = client.chat.completions.create(
                     model="gpt-3.5-turbo",
-                    messages=[{"role": "user", "content": prompt_rescore}]
+                    messages=[{"role": "user", "content": prompt_rescore}],
+                    temperature=0.2
                 )
                 rescore_result = response_rescore.choices[0].message.content
                 
@@ -84,12 +89,12 @@ if st.button("🚀 开始审计", type="primary"):
                 rescore_score_match = re.search(r'优化后得分：(\d+)/10', rescore_result)
                 optimized_score = int(rescore_score_match.group(1)) if rescore_score_match else 5
                 
-                # 显示完整结果
+                # 显示结果
                 st.success("审计完成！")
                 st.markdown("### 📊 原内容分析")
                 st.markdown(original_result)
                 
-                st.markdown("### ✏️ 优化后版本")
+                st.markdown("### ✏️ 优化后完整文案")
                 st.markdown(optimized_content)
                 
                 st.markdown("### 📈 优化后重新评分 & 对比")
@@ -97,7 +102,7 @@ if st.button("🚀 开始审计", type="primary"):
                 st.metric("得分变化", f"{optimized_score - original_score}分", delta=f"{optimized_score - original_score:+.0f}")
                 
                 # 下载
-                full_report = f"原分析：\n{original_result}\n\n优化版本：\n{optimized_content}\n\n重新评分：\n{rescore_result}"
+                full_report = f"原分析：\n{original_result}\n\n优化完整文案：\n{optimized_content}\n\n重新评分：\n{rescore_result}"
                 st.download_button("💾 下载完整报告", data=full_report, file_name="geo_full_report.txt")
                 
             except Exception as e:
@@ -106,4 +111,4 @@ if st.button("🚀 开始审计", type="primary"):
 
 # 页脚
 st.sidebar.markdown("---")
-st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 新增：优化后对比评分")
+st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 优化：强制完整文案输出")
