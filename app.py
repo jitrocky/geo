@@ -58,7 +58,7 @@ if st.button("🚀 开始审计", type="primary"):
 
 # 页脚
 st.sidebar.markdown("---")
-st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 扩展：加法语支持或数据库")                用{lang}回复，简洁专业。
+st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 扩展：加法语支持或数据库")                用{lang}回复,简洁专业。
                 """
                 
                 # 调用API
