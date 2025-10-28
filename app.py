@@ -58,28 +58,4 @@ if st.button("🚀 开始审计", type="primary"):
 
 # 页脚
 st.sidebar.markdown("---")
-st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 扩展：加法语支持或数据库")                用{lang}回复,简洁专业。
-                """
-                
-                # 调用API
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",  # 便宜版；升级到gpt-4o-mini
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                audit_result = response.choices[0].message.content
-                
-                # 显示结果
-                st.success("审计完成！")
-                st.markdown("### 📊 审计报告")
-                st.markdown(audit_result)
-                
-                # 下载优化版本
-                st.download_button("💾 下载优化内容", data=audit_result, file_name="geo_optimized.txt")
-                
-            except Exception as e:
-                st.error(f"哎呀，出错了！错误信息：{str(e)}。检查API Key或网络。")
-                st.info("提示：试试Groq免费API替换OpenAI。")
-
-# 页脚
-st.sidebar.markdown("---")
-st.sidebar.info("基于Python + Streamlit | 扩展：加法语支持或数据库")
+st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 扩展：加法语支持或数据库")
