@@ -5,7 +5,7 @@ import re
 # 设置页面标题
 st.set_page_config(page_title="GEO Audit Tool", page_icon="🔍")
 st.title("🔍 GEO内容审计工具 | Generative Engine Optimization Auditor")
-st.write("输入任意语言的内容，AI帮您优化在ChatGPT/Perplexity中的可见度！报告用中文，优化文案保持原语言。新增：优化后对比评分。")
+st.write("输入任意语言的内容，AI帮您优化在ChatGPT/Perplexity中的可见度！报告用中文，优化文案保持原语言。新增：优化后对比评分。模型：GPT-4o-mini（更智能）。")
 
 # API Key输入
 api_key = st.sidebar.text_input("输入您的OpenAI API Key（测试后可隐藏）", type="password")
@@ -38,9 +38,9 @@ if st.button("🚀 开始审计", type="primary"):
                 """
                 
                 response_original = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                    model="gpt-4o-mini",  # 升级：更智能、一致
                     messages=[{"role": "user", "content": prompt_original}],
-                    temperature=0.2  # 低随机，确保一致
+                    temperature=0.2
                 )
                 original_result = response_original.choices[0].message.content
                 
@@ -63,9 +63,9 @@ if st.button("🚀 开始审计", type="primary"):
                 """
                 
                 response_optimize = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                    model="gpt-4o-mini",  # 同上
                     messages=[{"role": "user", "content": prompt_optimize}],
-                    temperature=0.1  # 极低随机，确保纯输出
+                    temperature=0.1
                 )
                 optimized_content = response_optimize.choices[0].message.content.strip()
                 
@@ -79,7 +79,7 @@ if st.button("🚀 开始审计", type="primary"):
                 """
                 
                 response_rescore = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                    model="gpt-4o-mini",  # 同上
                     messages=[{"role": "user", "content": prompt_rescore}],
                     temperature=0.2
                 )
@@ -111,4 +111,4 @@ if st.button("🚀 开始审计", type="primary"):
 
 # 页脚
 st.sidebar.markdown("---")
-st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 优化：强制完整文案输出")
+st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 模型：GPT-4o-mini | 优化：完整文案 + 对比")
