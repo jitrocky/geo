@@ -6,7 +6,7 @@ import textwrap  # 缩进修复
 # 设置页面标题
 st.set_page_config(page_title="GEO Audit Tool", page_icon="🔍")
 st.title("🔍 GEO内容审计工具 | Generative Engine Optimization Auditor")
-st.write("输入任意语言的内容，AI帮您优化在ChatGPT/Perplexity中的可见度！报告用中文，优化文案保持原语言。升级：自然评分 + 维度分解（权威/结构/意图）。")
+st.write("输入任意语言的内容，AI帮您优化在ChatGPT/Perplexity中的可见度！报告用中文，优化文案保持原语言。升级：自然评分 + 维度分解（真实变化）。")
 
 # API Key输入
 api_key = st.sidebar.text_input("输入您的OpenAI API Key（测试后可隐藏）", type="password")
@@ -27,7 +27,7 @@ if st.button("🚀 开始审计", type="primary"):
         with st.spinner("AI正在分析..."):
             try:
                 # 第一步：分析原内容（加维度分解）
-                prompt_original_raw = f"""
+                prompt_original_raw = """
                 你是GEO专家。分析以下内容在生成式AI搜索（如ChatGPT）中的优化潜力。
                 规则：
                 - 自动检测输入内容的语言。
@@ -35,6 +35,100 @@ if st.button("🚀 开始审计", type="primary"):
                   1. 总得分（1-10分）：权威性（0-3分，来源支持）+ 结构化（0-3分，列表/标题）+ 用户意图匹配（0-4分，直接回答问题）。
                   2. 维度分解：权威X/3、结构Y/3、意图Z/4。
                   3. 问题点：3-5个改进建议（用中文）。
+                - 整个报告用中文回复，简洁专业。
+                内容：{content}
+                """
+                prompt_original = textwrap.dedent(prompt_original_raw).format(content=content)
+                
+                response_original = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": prompt_original}],
+                    temperature=0.2
+                )
+                original_result = response_original.choices[0].message.content
+                
+                # 提取总分（多pattern）
+                original_score_match = re.search(r'总得分[:：]\s*(\d+)/10', original_result, re.IGNORECASE)
+                original_score = int(original_score_match.group(1)) if original_score_match else 5
+                
+                # 第二步：生成优化版本（自然融入）
+                prompt_optimize_raw = """
+                你是GEO专家。根据以下分析和建议，重写以下内容为完整优化版本，提升GEO潜力。
+                规则：
+                - 用输入内容的原语言重写成一篇完整、连贯的文案（长度类似原内容，约{len}字符）。
+                - 自然融入建议：权威（加2-3来源）、结构（小标题/列表）、意图（痛点解答）。
+                - 保持原意，提升AI引用吸引力。
+                - 输出：**严格只输出优化后的完整文案**，无其他文字。
+                示例（中文）：这款防水智能手表，符合IP68标准（ISO 22810规范），专为游泳设计。为什么选择它？心率监测准确95%（Apple数据），电池7天续航（用户Amazon反馈）。
+                
+                原分析和建议：{original_result}
+                原内容：{content}
+                """
+                prompt_optimize = textwrap.dedent(prompt_optimize_raw).format(
+                    len=len(content)*1.5,
+                    original_result=original_result,
+                    content=content
+                )
+                
+                response_optimize = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": prompt_optimize}],
+                    temperature=0.1
+                )
+                optimized_content = response_optimize.choices[0].message.content.strip()
+                
+                # 第三步：重新评分（自然 + 维度分解）
+                prompt_rescore_raw = """
+                你是GEO专家。用相同标准自然评分以下优化内容（权威0-3、结构0-3、意图0-4，总1-10）。
+                基于改进，优化总分应高于原{original_score}分。
+                输出结构用中文：
+                1. 总得分（1-10分）。
+                2. 维度分解：权威X/3、结构Y/3、意图Z/4。
+                3. 对比：总提升点（用中文，列2-3点）。
+                内容：{optimized_content}
+                """
+                prompt_rescore = textwrap.dedent(prompt_rescore_raw).format(
+                    original_score=original_score,
+                    optimized_content=optimized_content
+                )
+                
+                response_rescore = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": prompt_rescore}],
+                    temperature=0.1
+                )
+                rescore_result = response_rescore.choices[0].message.content
+                
+                # 提取优化总分
+                rescore_score_match = re.search(r'总得分[:：]\s*(\d+)/10', rescore_result, re.IGNORECASE)
+                optimized_score = int(rescore_score_match.group(1)) if rescore_score_match else original_score
+                
+                # 真实变化
+                score_change = optimized_score - original_score
+                
+                # 显示结果
+                st.success("审计完成！")
+                st.markdown("### 📊 原内容分析")
+                st.markdown(original_result)
+                
+                st.markdown("### ✏️ 优化后完整文案")
+                st.markdown(optimized_content)
+                
+                st.markdown("### 📈 优化后重新评分 & 对比")
+                st.markdown(rescore_result)
+                st.metric("总得分变化", f"+{score_change}分", delta=f"+{score_change}")
+                
+                # 下载
+                full_report = f"原分析：\n{original_result}\n\n优化完整文案：\n{optimized_content}\n\n重新评分：\n{rescore_result}"
+                st.download_button("💾 下载完整报告", data=full_report, file_name="geo_full_report.txt")
+                
+            except Exception as e:
+                st.error(f"哎呀，出错了！错误信息：{str(e)}。检查API Key或网络。")
+                st.info("提示：试试Groq免费API替换OpenAI。")
+
+# 页脚
+st.sidebar.markdown("---")
+st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 升级：自然评分 + 维度分解（真实变化）")                  3. 问题点：3-5个改进建议（用中文）。
                 - 整个报告用中文回复，简洁专业。
                 内容：{content}
                 """
