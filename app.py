@@ -113,7 +113,7 @@ if st.button("🚀 开始审计", type="primary"):
 
 # 页脚
 st.sidebar.markdown("---")
-st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 升级：强制提升得分 + 更准提取")                内容：{content}
+st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 升级：强制提升得分 + 更准提取")              
                 """
                 
                 response_original = client.chat.completions.create(
