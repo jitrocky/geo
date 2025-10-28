@@ -1,6 +1,7 @@
 import streamlit as st
 import openai  # 如果用Groq，替换为 from groq import Groq
 import re
+import textwrap  # 新增：修复多行f-string缩进
 
 # 设置页面标题
 st.set_page_config(page_title="GEO Audit Tool", page_icon="🔍")
@@ -25,8 +26,8 @@ if st.button("🚀 开始审计", type="primary"):
     else:
         with st.spinner("AI正在分析..."):
             try:
-                # 第一步：分析原内容
-                prompt_original = f"""
+                # 第一步：分析原内容（用dedent修复缩进）
+                prompt_original_raw = f"""
                 你是GEO专家。分析以下内容在生成式AI搜索（如ChatGPT）中的优化潜力。
                 规则：
                 - 自动检测输入内容的语言。
@@ -36,6 +37,7 @@ if st.button("🚀 开始审计", type="primary"):
                 - 整个报告用中文回复，简洁专业。
                 内容：{content}
                 """
+                prompt_original = textwrap.dedent(prompt_original_raw)
                 
                 response_original = client.chat.completions.create(
                     model="gpt-4o-mini",
@@ -49,8 +51,8 @@ if st.button("🚀 开始审计", type="primary"):
                 original_score = int(original_score_match.group(2)) if original_score_match else 5
                 st.session_state.original_score = original_score  # 存状态
                 
-                # 第二步：生成优化版本
-                prompt_optimize = f"""
+                # 第二步：生成优化版本（同上修复）
+                prompt_optimize_raw = f"""
                 你是GEO专家。根据以下分析和建议，重写以下内容为完整优化版本，提升GEO潜力。
                 严格规则：
                 - 用输入内容的原语言重写成一篇完整、连贯的文案（长度类似原内容，约{len(content)*1.5}字符）。
@@ -62,6 +64,7 @@ if st.button("🚀 开始审计", type="primary"):
                 原分析和建议：{original_result}
                 原内容：{content}
                 """
+                prompt_optimize = textwrap.dedent(prompt_optimize_raw)
                 
                 response_optimize = client.chat.completions.create(
                     model="gpt-4o-mini",
@@ -70,8 +73,8 @@ if st.button("🚀 开始审计", type="primary"):
                 )
                 optimized_content = response_optimize.choices[0].message.content.strip()
                 
-                # 第三步：重新评分（强制提升）
-                prompt_rescore = f"""
+                # 第三步：重新评分（强制提升，同上修复）
+                prompt_rescore_raw = f"""
                 你是GEO专家。用与之前相同的固定标准评分以下优化内容。
                 重要：基于融入的改进（权威来源、结构、意图），**优化得分必须高于原{original_score}分（至少+2分）**，并解释具体提升原因。
                 输出结构用中文：
@@ -79,6 +82,7 @@ if st.button("🚀 开始审计", type="primary"):
                 2. 对比：提升{optimized_score - original_score if 'optimized_score' in locals() else 2}分的原因（用中文，列3点）。
                 内容：{optimized_content}
                 """
+                prompt_rescore = textwrap.dedent(prompt_rescore_raw)
                 
                 response_rescore = client.chat.completions.create(
                     model="gpt-4o-mini",
@@ -113,4 +117,4 @@ if st.button("🚀 开始审计", type="primary"):
 
 # 页脚
 st.sidebar.markdown("---")
-st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 升级：强制提升得分 + 更准提取")
+st.sidebar.info("基于Python + Streamlit | 支持任意语言 | 升级：强制提升得分 + 更准提取 + 缩进修复")
